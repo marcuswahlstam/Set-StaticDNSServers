@@ -1,13 +1,14 @@
-﻿#Requires -Version 3
+#Requires -Version 3
 
 # Registry entry to manage if script should run
-$regKey = "HKLM:\SOFTWARE\Saft Batteries\Scripts"
+$regKey = "HKLM:\SOFTWARE\Advitum\Scripts"
 $regName = "SetStaticDNSVersion"
 $regValue = "2" # Change this if you want the script to run again on all servers
 
 # IP of old DNS that should be replaced in DNS settings
-$DNSServerToRemove = "10.238.20.11"
-$ActiveDNSServers = "10.238.20.12","10.105.50.7","10.236.1.7"
+$DNSServerToRemove = "10.0.0.1"
+# IP of new and active DNS the script should change to
+$ActiveDNSServers = "10.0.0.2","10.105.0.1","10.1.1.1"
 
 
 if ((Get-ItemProperty $regKey -ErrorAction Ignore).$regName -eq $regValue)
@@ -67,9 +68,9 @@ else
 }
 
 
-# Send to DB
-$DBServer = "SE-OSK-SQL100.corporate.saft.org"
-$DBName = "SaftScriptLog"
+# Send result to DB
+$DBServer = "sqlserver.corp.org"
+$DBName = "LogDB"
 $DBTable = "StaticDNSServers"
 $sqlConnection = New-Object System.Data.SqlClient.SqlConnection
 $sqlConnection.ConnectionString = "Server=$DBServer;Database=$DBName;Integrated Security=True;"
