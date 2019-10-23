@@ -6,9 +6,9 @@ $regName = "SetStaticDNSVersion"
 $regValue = "2" # Change this if you want the script to run again on all servers
 
 # IP of old DNS that should be replaced in DNS settings
-$DNSServerToRemove = "10.0.0.1"
+$DNSServerToRemove = "10.1.10.1"
 # IP of new and active DNS the script should change to
-$ActiveDNSServers = "10.0.0.2","10.105.0.1","10.1.1.1"
+$ActiveDNSServers = "10.0.0.1","10.1.1.1","10.1.2.1"
 
 
 if ((Get-ItemProperty $regKey -ErrorAction Ignore).$regName -eq $regValue)
@@ -30,34 +30,38 @@ if ($dhcpEnabled -ne "Dhcp")
         $LogText = "Correct DNS servers already set"
         $result = "Success"
     }
-
-    # Get which interfaces are up
-    $OnlineInterfaces = @()
-    foreach ($Interface in $InterfacesWithOldDNS)
+    else
     {
-        $OnlineInterfaces += Get-NetAdapter -ifIndex $($Interface.InterfaceIndex) | where {$_.status -eq "Up"}
-    }
-
-    if ($OnlineInterfaces -eq $null)
-    {
-        $LogText = "No online interfaces found"
-        $result = "NoInterfaces"
-    }
-
-    foreach ($OnlineInterface in $OnlineInterfaces)
-    {
-        $ifIndex = $OnlineInterface.ifindex
-        Set-DnsClientServerAddress -InterfaceIndex $ifIndex -ServerAddresses ($ActiveDNSServers)
-        if ($?)
+        # Get which interfaces are up
+        $OnlineInterfaces = @()
+        foreach ($Interface in $InterfacesWithOldDNS)
         {
-            $LogText = "Successfully set DNS Servers"
-        
-            $result = "Success"
+            $OnlineInterfaces += Get-NetAdapter -ifIndex $($Interface.InterfaceIndex) | where {$_.status -eq "Up"}
+        }
+
+        if ($OnlineInterfaces -eq $null)
+        {
+            $LogText = "No online interfaces found"
+            $result = "NoInterfaces"
         }
         else
         {
-            $LogText = "Something went wrong for interface $ifIndex"
-            $result = "Failure"
+            foreach ($OnlineInterface in $OnlineInterfaces)
+            {
+                $ifIndex = $OnlineInterface.ifindex
+                Set-DnsClientServerAddress -InterfaceIndex $ifIndex -ServerAddresses ($ActiveDNSServers)
+                if ($?)
+                {
+                    $LogText = "Successfully set DNS Servers"
+        
+                    $result = "Success"
+                }
+                else
+                {
+                    $LogText = "Something went wrong when set DNS on interface $ifIndex"
+                    $result = "Failure"
+                }
+            }
         }
     }
 }
@@ -70,7 +74,7 @@ else
 
 # Send result to DB
 $DBServer = "sqlserver.corp.org"
-$DBName = "LogDB"
+$DBName = "ScriptLogDB"
 $DBTable = "StaticDNSServers"
 $sqlConnection = New-Object System.Data.SqlClient.SqlConnection
 $sqlConnection.ConnectionString = "Server=$DBServer;Database=$DBName;Integrated Security=True;"
